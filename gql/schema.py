@@ -1,0 +1,57 @@
+import graphene 
+from items.models import Movie
+from graphene_django.types import DjangoObjectType
+from graphene import ObjectType, String
+
+
+#this is what we define SCHEMA in settings.py
+
+
+#api-movie-model
+
+class MovieType(DjangoObjectType):
+    id = graphene.Int()
+    name = graphene.String()
+    year = graphene.Int()
+    summary = graphene.String()
+    poster_url = graphene.String()
+    slug = graphene.String()
+
+
+    class Meta:
+        model = Movie 
+    def resolve_id(self, info):
+        return self.id 
+    
+    def resolve_name(self,info):
+        return self.name
+
+    def resolve_year(self, info):
+        return self.year
+
+    def resolve_summary(self, info):
+        return self.summary
+
+    def resolve_poster_url(self, info):
+        #note: in client side app snake_case  fields will be resolved as camelCase
+        #e.g poster_url ==> posterUrl
+        return self.poster_url
+    
+
+    def resolve_slug(self, info):
+        return self.slug
+
+
+class Query(graphene.ObjectType):
+    movie_list = graphene.List(MovieType)
+    movie = graphene.Field(MovieType, slug=graphene.String())
+
+    def resolve_movie_list(self, info, *_):
+        #for large lists only query what u need
+        return Movie.objects.all().only("name", "poster_url", "slug")
+    
+    def resolve_movie(self, info,slug):
+        movie_queryset = Movie.objects.filter(slug=slug)
+        if movie_queryset.exists():return movie_queryset.first()
+
+schema = graphene.Schema(query=Query)
